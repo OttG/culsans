@@ -3,12 +3,29 @@ include ../rtl.mk
 # add dummy version of cva6 for injecting cache requests from test bench drivers
 CVA6_TEST += $(CVA6_DIR)/corev_apu/tb/tb_std_cache_subsystem/hdl/cva6_cache_dummy.sv
 
+# create list of available tests
 TESTS_DIR = ./testlist
 TESTLIST := $(dir $(wildcard $(TESTS_DIR)/*/.))
 
-# List known failing tests
-FAIL_LIST += $(TESTS_DIR)/read_two_writes_back_to_back/ # Triggers Jira Issue PROJ-147
-FAIL_LIST += $(TESTS_DIR)/amo_lr_sc_single/             # Triggers Jira Issue PROJ-274
+# avoid triggering known bugs
+AVOID_BUG_147  = 0    # Jira ticket https://planv.atlassian.net/browse/PROJ-147
+AVOID_BUG_274  = 0    # Jira ticket https://planv.atlassian.net/browse/PROJ-274
+
+AVOID_BUG_ALL ?= 1
+ifeq ($(AVOID_BUG_ALL), 1)
+    AVOID_BUG_147 = 1
+    AVOID_BUG_274 = 1
+endif
+
+FAIL_LIST =
+ifeq ($(AVOID_BUG_147), 1)
+	FAIL_LIST += $(TESTS_DIR)/read_two_writes_back_to_back/
+endif
+
+ifeq ($(AVOID_BUG_274), 1)
+	FAIL_LIST += $(TESTS_DIR)/amo_lr_sc_single/
+endif
+
 PASS_LIST = $(filter-out $(FAIL_LIST), $(TESTLIST))
 
 # other sets
@@ -57,7 +74,7 @@ all: rtl tb
 		echo "Running test $$d"; \
 		$(MAKE) --no-print-directory -C $$d all; \
 	done
-	@$(MAKE) status
+	@$(MAKE) --no-print-directory status
 
 # run a single test
 else
@@ -76,7 +93,7 @@ pass: rtl
 		echo "Running test $$d"; \
 		$(MAKE) --no-print-directory -C $$d all; \
 	done
-	@$(MAKE) status
+	@$(MAKE) --no-print-directory status
 
 # run all tests expected to fail
 fail: rtl
@@ -84,7 +101,14 @@ fail: rtl
 		echo "Running test $$d"; \
 		$(MAKE) --no-print-directory -C $$d all; \
 	done
-	@$(MAKE) status
+	@$(MAKE) --no-print-directory status
+
+# clean all tests expected to fail
+clean_fail:
+	@-for d in $(FAIL_LIST); do \
+		echo "Cleaning test $$d"; \
+		$(MAKE) --no-print-directory -C $$d clean_test; \
+	done
 
 # run all tests expected to fail
 amo: rtl
@@ -92,7 +116,7 @@ amo: rtl
 		echo "Running test $$d"; \
 		$(MAKE) --no-print-directory -C $$d all; \
 	done
-	@$(MAKE) status
+	@$(MAKE) --no-print-directory status
 
 # run failed or not-executed tests
 rerun: rtl
@@ -107,7 +131,7 @@ rerun: rtl
 			$(MAKE) --no-print-directory -C $$d all; \
 		fi; \
 	done
-	@$(MAKE) status
+	@$(MAKE) --no-print-directory status
 
 rerun_pass: rtl
 	@-for d in $(PASS_LIST); do \
@@ -121,7 +145,7 @@ rerun_pass: rtl
 			$(MAKE) --no-print-directory -C $$d all; \
 		fi; \
 	done
-	@$(MAKE) status
+	@$(MAKE) --no-print-directory status
 
 # list status
 status:
@@ -159,4 +183,4 @@ clean_tests:
 
 clean: clean_tests clean_rtl
 
-.PHONY: all pass fail rerun status list_tests clean_tests clean report_coverage
+.PHONY: all pass fail rerun status list_tests clean_tests clean report_coverage clean_fail
