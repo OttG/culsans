@@ -10,8 +10,10 @@ dis : fw_payload.dis
 
 main.hex : fw_payload.elf
 	$(RV_OBJCOPY) -O verilog fw_payload.elf main.vh
-	../../test_automation/vh2hex.py -m main.vh -o main.hex -b 0x80000000 -d 0x80000000 -i 0x80100000
-	rm main.vh
+#	$(RV_OBJCOPY) -O verilog genesys-culsans.dtb dtb.vh
+#	../../test_automation/vh2hex.py -m main.vh -o main.hex -b 0x80000000 -d 0x80000000 -i 0x80100000
+	../../test_automation/vh2hex.py -m main.vh -o main.hex -b 0x80000000
+#	rm main.vh
 
 sw : main.hex
 
@@ -24,12 +26,12 @@ VSIM_LIB = ../../work
 
 TOP_LEVEL = culsans_tb
 SIM_TCL = sim.tcl
-SIM_RUNTIME ?= 100ms
+SIM_RUNTIME ?= -a
 
 
 #UVM_FLAGS = +UVM_NO_RELNOTES +UVM_VERBOSITY=LOW
-VSIM_FLAGS = -t 1ns -64 -classdebug
-VSIM_FLAGS = -suppress 12110
+VSIM_FLAGS = -t 1ps -64 -classdebug
+VSIM_FLAGS += -suppress 12110
 
 ifneq ($(COVER), 0)
     VSIM_FLAGS += -coverage
@@ -38,14 +40,14 @@ endif
 
 ifeq ($(GUI), 0)
 	VSIM_FLAGS += -c
-	VSIM_CMD = -do "run $(SIM_RUNTIME);"
+	VSIM_CMD = -do " log -r /*; run $(SIM_RUNTIME);"
 else
 	ifneq ($(GUI), 1)
 		$(error GUI must be 0 or 1)
 	else
 		GTKWAVE_CMD = gtkwave waveform.vcd
 	endif
-	VSIM_CMD = -do "source $(SIM_TCL); run $(SIM_RUNTIME);"
+	VSIM_CMD = -do "source $(SIM_TCL); log -r /*; run $(SIM_RUNTIME);"
 endif
 
 $(TEST_REPORT): main.hex

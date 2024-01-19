@@ -18,13 +18,13 @@ RV_OBJDUMP := $(RV_TOOL_PREFIX)objdump
 RV_OBJCOPY := $(RV_TOOL_PREFIX)objcopy
 
 # questasim
-VSIM   = vsim
-VLOG   = vlog
-VOPT   = vopt
-VCOM   = vcom
-VLIB   = vlib
-VMAP   = vmap
-VCOVER = vcover
+VSIM   = ${questasim_version} vsim
+VLOG   = ${questasim_version} vlog
+VOPT   = ${questasim_version} vopt
+VCOM   = ${questasim_version} vcom
+VLIB   = ${questasim_version} vlib
+VMAP   = ${questasim_version} vmap
+VCOVER = ${questasim_version} vcover
 
 # verilator
 VERILATOR = verilator
@@ -37,8 +37,8 @@ COVERAGE_REPORT      = $(COVERAGE_DIR)/coverage.rpt
 COVERAGE_REPORT_HTML = $(COVERAGE_DIR)/html
 
 # Check tools - inspired by https://stackoverflow.com/questions/5618615/check-if-a-program-exists-from-a-makefile
-EXECUTABLES = $(GCC) 
-#EXECUTABLES += $(VSIM) 
+EXECUTABLES = $(GCC)
+#EXECUTABLES += $(VSIM)
 ifeq ($(VERILATE), 1)
 #        EXECUTABLES += VERILATOR
 endif

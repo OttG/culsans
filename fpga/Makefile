@@ -92,7 +92,7 @@ $(ips): %.xci :
 	@cd $(ip-dir)/$(basename $(@F)) && make clean && make BOARD=$(BOARD) XILINX_PART=$(XILINX_PART) XILINX_BOARD=$(XILINX_BOARD) CLK_PERIOD_NS=$(CLK_PERIOD_NS)
 	@cp $(ip-dir)/$(basename $(@F))/$(basename $(@F)).srcs/sources_1/ip/$(basename $(@F))/$(@F) $@
 
-
+ips: $(ips)
 # Check that RTL and SW are aligned with the NB_CORES setting
 
 RTL_NBCORES_DEF = "localparam NB_CORES = $(NB_CORES);"

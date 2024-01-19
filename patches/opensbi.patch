@@ -1,0 +1,68 @@
+diff --git a/platform/fpga/ariane/config.mk b/platform/fpga/ariane/config.mk
+index 3556461..8d1288e 100644
+--- a/platform/fpga/ariane/config.mk
++++ b/platform/fpga/ariane/config.mk
+@@ -32,5 +32,5 @@ else
+ # This needs to be 2MB aligned for 64-bit support
+   FW_PAYLOAD_OFFSET=0x200000
+ endif
+-FW_PAYLOAD_FDT_ADDR=0x82200000
++FW_PAYLOAD_FDT_ADDR=0x81800000
+ FW_PAYLOAD_ALIGN=0x1000
+diff --git a/platform/fpga/ariane/platform.c b/platform/fpga/ariane/platform.c
+index a5db97a..57dd121 100644
+--- a/platform/fpga/ariane/platform.c
++++ b/platform/fpga/ariane/platform.c
+@@ -17,15 +17,17 @@
+ #include <sbi_utils/irqchip/plic.h>
+ #include <sbi_utils/serial/uart8250.h>
+ #include <sbi_utils/timer/aclint_mtimer.h>
++#include <libfdt.h>
+ 
+ #define ARIANE_UART_ADDR			0x10000000
+-#define ARIANE_UART_FREQ			50000000
+-#define ARIANE_UART_BAUDRATE			115200
++#define ARIANE_UART_FREQ			40000000
++#define ARIANE_UART_BAUDRATE			38400
+ #define ARIANE_UART_REG_SHIFT			2
+ #define ARIANE_UART_REG_WIDTH			4
+ #define ARIANE_PLIC_ADDR			0xc000000
+ #define ARIANE_PLIC_NUM_SOURCES			3
+-#define ARIANE_HART_COUNT			2
++#define ARIANE_HART_COUNT				2
++// TODO, PUT 1 CORE => DTS REMOVE SECOND CORE, REBUILD BOOTROM WITH ONLY WFI.
+ #define ARIANE_CLINT_ADDR			0x2000000
+ #define ARIANE_ACLINT_MTIMER_FREQ		1000000
+ #define ARIANE_ACLINT_MSWI_ADDR			(ARIANE_CLINT_ADDR + \
+@@ -100,6 +102,14 @@ static int ariane_early_init(bool cold_boot)
+ 				    ACLINT_DEFAULT_MTIMECMP_OFFSET;
+ 	}
+ 
++
++	for (int i=0; i < 100; i++){
++		uint32_t *fdt_add = (uint32_t *)0x81800000;
++
++		sbi_printf("Value of FDT[%d] = %d\n", i, *(unsigned int *)(fdt_add + i));
++
++	}
++
+ 	return 0;
+ }
+ 
+@@ -109,12 +119,15 @@ static int ariane_early_init(bool cold_boot)
+ static int ariane_final_init(bool cold_boot)
+ {
+ 	void *fdt;
+-
++	int debugger_off;
+ 	if (!cold_boot)
+ 		return 0;
+ 
+ 	fdt = fdt_get_address();
+ 	fdt_fixups(fdt);
++	debugger_off = fdt_node_offset_by_compatible(fdt,0,"riscv,debug-013");
++    if(debugger_off > 0)
++      fdt_del_node(fdt,debugger_off);
+ 
+ 	return 0;
+ }

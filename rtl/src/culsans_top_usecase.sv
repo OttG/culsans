@@ -34,7 +34,8 @@ module culsans_top_usecase #(
   parameter int unsigned FixedDelayInput   = 0,
   parameter int unsigned FixedDelayOutput  = 0,
   parameter bit          HasLLC            = 1'b1,
-  parameter BootAddress = 64'h8010_0000 //culsans_pkg::ROMBase
+  //parameter BootAddress = 64'h8010_0000 //culsans_pkg::ROMBase
+  parameter BootAddress = 64'h8000_0000 //culsans_pkg::ROMBase
 ) (
   input  logic                           clk_i,
   input  logic                           rtc_i,
@@ -750,6 +751,17 @@ module culsans_top_usecase #(
   culsans_pkg::req_slv_t  axi_clint_req;
   culsans_pkg::resp_slv_t axi_clint_resp;
 
+  logic rtc;
+
+  // divide clock by two
+  always_ff @(posedge clk_i or negedge ndmreset_n) begin
+    if (~ndmreset_n) begin
+      rtc <= 0;
+    end else begin
+      rtc <= rtc ^ 1'b1;
+    end
+  end
+
   clint #(
     .AXI_ADDR_WIDTH ( AXI_ADDRESS_WIDTH          ),
     .AXI_DATA_WIDTH ( AXI_DATA_WIDTH             ),
@@ -763,7 +775,8 @@ module culsans_top_usecase #(
     .testmode_i  ( test_en        ),
     .axi_req_i   ( axi_clint_req  ),
     .axi_resp_o  ( axi_clint_resp ),
-    .rtc_i       ( rtc_i          ),
+//    .rtc_i       ( rtc_i          ),
+    .rtc_i       ( rtc          ),
     .timer_irq_o ( timer_irq      ),
     .ipi_o       ( ipi            )
   );
@@ -822,7 +835,7 @@ module culsans_top_usecase #(
     .spi_ss    ( )
   );
 
-  uart_bus #(.BAUD_RATE(115200), .PARITY_EN(0)) i_uart_bus (.rx(tx), .tx(rx), .rx_en(1'b1));
+  uart_bus #(.BAUD_RATE(38400), .PARITY_EN(0)) i_uart_bus (.rx(tx), .tx(rx), .rx_en(1'b1));
 
   // ---------------
   // Cores
@@ -836,6 +849,10 @@ module culsans_top_usecase #(
   for (genvar i = 0; i < culsans_pkg::NB_CORES; i++) begin : gen_ariane
 
     assign hart_id[i] = i;
+    logic [riscv::VLEN-1:0] boot_addr_i;
+
+    //assign boot_addr_i = (i == 0) ? BootAddress : culsans_pkg::ROMBase;
+    assign boot_addr_i = BootAddress;
 
     ariane #(
       .ArianeCfg     ( ArianeCfg             ),
@@ -850,7 +867,7 @@ module culsans_top_usecase #(
     ) i_ariane (
       .clk_i                ( clk_i               ),
       .rst_ni               ( ndmreset_n          ),
-      .boot_addr_i          ( BootAddress         ),
+      .boot_addr_i          ( boot_addr_i         ),
       .hart_id_i            ( {56'h0, hart_id[i]} ),
       .irq_i                ( irqs[2*i+1:2*i]     ),
       .ipi_i                ( ipi[i]              ),
@@ -870,8 +887,8 @@ module culsans_top_usecase #(
 
     `ACE_ASSIGN_FROM_REQ(core_to_CCU[i], ace_ariane_req[i])
     `ACE_ASSIGN_TO_RESP(ace_ariane_resp[i], core_to_CCU[i])
-     `SNOOP_ASSIGN_FROM_RESP(CCU_to_core[i], ace_ariane_req[i])
-     `SNOOP_ASSIGN_TO_REQ(ace_ariane_resp[i], CCU_to_core[i])
+    `SNOOP_ASSIGN_FROM_RESP(CCU_to_core[i], ace_ariane_req[i])
+    `SNOOP_ASSIGN_TO_REQ(ace_ariane_resp[i], CCU_to_core[i])
 
   end
 

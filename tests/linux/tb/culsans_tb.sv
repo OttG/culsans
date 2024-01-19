@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module culsans_tb ();
 
     // Clock & reset generation
@@ -5,19 +7,19 @@ module culsans_tb ();
     logic clk;
     logic rst;
 
-    localparam CLK_PERIOD = 10ns;
+    localparam CLK_PERIOD = 12500ps;
 
    initial begin
         clk = 1'b0;
         rst = 1'b1;
 
         repeat(8)
-            #(CLK_PERIOD/2) clk = ~clk;
+            #(CLK_PERIOD) clk = ~clk;
 
         rst = 1'b0;
 
         forever begin
-            #(CLK_PERIOD/2) clk = ~clk;
+            #(CLK_PERIOD) clk = ~clk;
         end
     end
 
@@ -39,7 +41,7 @@ module culsans_tb ();
     logic [31:0] exit_val;
 
     initial begin
-        
+
         int fd;
 
         forever begin
@@ -69,22 +71,24 @@ module culsans_tb ();
         integer file;
         integer error;
         static string  mem_init_file = "main.hex";
+        static string  dtb_file = "dtb-right.mem";
 //        static string  instr_init_file = "main_instr.hex";
 //        static string  data_init_file = "main_data.hex";
 
         @(negedge rst);
         #2
 
-        //file = $fopen(mem_init_file, "r");
-        //$ferror(file, error);
-        //$fclose(file);
-        //if (error == 0) begin
-//        $readmemh(data_init_file, i_culsans.i_sram.gen_cut[0].gen_mem.i_tc_sram_wrapper.i_tc_sram.sram, 32'h0000);
-//        $readmemh(instr_init_file, i_culsans.i_sram.gen_cut[0].gen_mem.i_tc_sram_wrapper.i_tc_sram.sram, 32'h10_0000);
-//        $readmemh(mem_init_file, i_culsans.i_sram.gen_cut[0].i_tc_sram_wrapper.i_tc_sram.sram);
+        // Load binary to SRAM
         $readmemh(mem_init_file, i_culsans.i_sram.i_tc_sram.sram);
+        // Need to add the load of the DTB
+        $readmemh(dtb_file,     i_culsans.i_sram.i_tc_sram.sram, 'h30_0000);
+        // Need to set the PC to the entry point of linux
+        //
 
-        //end
+        // repeat(100) @(negedge clk);
+        // for(int i=0; i<64; i++)begin
+        //     $display("%h", i_culsans.i_sram.i_tc_sram.sram[i + 'h2200000]);
+        // end
     end
 
     // DUT
@@ -99,7 +103,7 @@ module culsans_tb ();
         .rst_ni(~rst),
         .exit_o (exit_val)
     );
-    
+
 
 
     // ...
